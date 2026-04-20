@@ -152,7 +152,6 @@ export default function UriUmbba() {
   const [userInfo, setUserInfo] = useState({ name: "", phone: "", area: "" });
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [submitDone, setSubmitDone] = useState(false);
 
   const go = useCallback((target) => {
     setFade(false);
@@ -243,12 +242,27 @@ export default function UriUmbba() {
 
   // ═══ 사용자 정보 입력 (Google Sheets 연동) ═══
   const UserInfoPage = () => {
-    const canSubmit = userInfo.name.trim() && userInfo.phone.trim() && userInfo.area.trim() && privacyAgreed && !submitting;
+    const nameRef = useRef<HTMLInputElement>(null);
+    const phoneRef = useRef<HTMLInputElement>(null);
+    const areaRef = useRef<HTMLInputElement>(null);
+    const [localAgreed, setLocalAgreed] = useState(false);
+    const [localSubmitting, setLocalSubmitting] = useState(false);
+    const [filled, setFilled] = useState(false);
+
+    const checkFilled = () => {
+      setFilled(
+        !!(nameRef.current?.value.trim()) &&
+        !!(phoneRef.current?.value.trim()) &&
+        !!(areaRef.current?.value.trim())
+      );
+    };
 
     const handleSubmit = async () => {
-      if (!canSubmit) return;
-      setSubmitting(true);
-      // 검사 결과 계산
+      if (!localAgreed || !filled || localSubmitting) return;
+      const name = nameRef.current?.value.trim() || "";
+      const phone = phoneRef.current?.value.trim() || "";
+      const area = areaRef.current?.value.trim() || "";
+      setLocalSubmitting(true);
       const score = calcScore(basic, physical, social, cognition, behavior, nursing);
       const est = estimateGrade(score, basic);
       try {
@@ -257,21 +271,18 @@ export default function UriUmbba() {
           mode: "no-cors",
           headers: { "Content-Type": "text/plain" },
           body: JSON.stringify({
-            name: userInfo.name.trim(),
-            phone: userInfo.phone.trim(),
-            area: userInfo.area.trim(),
+            name, phone, area,
             score: score,
             grade: est.grade,
             submitAt: new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }),
           }),
         });
-      } catch (e) { /* no-cors는 항상 오류처럼 보임 - 정상 */ }
-      setSubmitting(false);
-      setSubmitDone(true);
+      } catch (e) { /* no-cors 정상 */ }
+      setLocalSubmitting(false);
       go(STEPS.CONSULT);
     };
 
-    const inputStyle = { width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: F, outline: "none", boxSizing: "border-box" as const, background: C.card };
+    const inputStyle: React.CSSProperties = { width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: F, outline: "none", boxSizing: "border-box", background: C.card };
 
     return (<div><Hdr title="상담 신청" onBack={() => go(STEPS.RESULT)} /><div style={inner}>
       <div style={{ textAlign: "center", padding: "28px 0 20px" }}>
@@ -283,22 +294,22 @@ export default function UriUmbba() {
 
       <Crd style={{ marginBottom: 12, marginTop: 8 }}>
         <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>이름</label>
-        <input defaultValue={userInfo.name} onBlur={(e) => setUserInfo((p) => ({ ...p, name: e.target.value }))} onChange={(e) => setUserInfo((p) => ({ ...p, name: e.target.value }))} placeholder="예: 홍길동" style={inputStyle} />
+        <input ref={nameRef} onInput={checkFilled} placeholder="예: 홍길동" style={inputStyle} />
       </Crd>
 
       <Crd style={{ marginBottom: 12 }}>
         <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>전화번호</label>
-        <input defaultValue={userInfo.phone} onBlur={(e) => setUserInfo((p) => ({ ...p, phone: e.target.value }))} onChange={(e) => setUserInfo((p) => ({ ...p, phone: e.target.value }))} placeholder="예: 010-1234-5678" type="tel" style={inputStyle} />
+        <input ref={phoneRef} onInput={checkFilled} placeholder="예: 010-1234-5678" type="tel" style={inputStyle} />
       </Crd>
 
       <Crd style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>지역 (시·구)</label>
-        <input defaultValue={userInfo.area} onBlur={(e) => setUserInfo((p) => ({ ...p, area: e.target.value }))} onChange={(e) => setUserInfo((p) => ({ ...p, area: e.target.value }))} placeholder="예: 성북구, 강북구, 수원시 등" style={inputStyle} />
+        <input ref={areaRef} onInput={checkFilled} placeholder="예: 성북구, 강북구, 수원시 등" style={inputStyle} />
       </Crd>
 
-      <button onClick={() => setPrivacyAgreed(!privacyAgreed)} style={{ display: "flex", alignItems: "flex-start", gap: 10, width: "100%", padding: "14px 16px", marginBottom: 20, borderRadius: 12, border: privacyAgreed ? `2px solid ${C.primary}` : `1.5px solid ${C.border}`, background: privacyAgreed ? C.primaryLight : C.card, cursor: "pointer", fontFamily: F, textAlign: "left" }}>
-        <div style={{ width: 22, height: 22, borderRadius: 6, border: privacyAgreed ? "none" : `2px solid ${C.border}`, background: privacyAgreed ? C.primary : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-          {privacyAgreed && <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>✓</span>}
+      <button onClick={() => setLocalAgreed(v => !v)} style={{ display: "flex", alignItems: "flex-start", gap: 10, width: "100%", padding: "14px 16px", marginBottom: 20, borderRadius: 12, border: localAgreed ? `2px solid ${C.primary}` : `1.5px solid ${C.border}`, background: localAgreed ? C.primaryLight : C.card, cursor: "pointer", fontFamily: F, textAlign: "left" }}>
+        <div style={{ width: 22, height: 22, borderRadius: 6, border: localAgreed ? "none" : `2px solid ${C.border}`, background: localAgreed ? C.primary : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+          {localAgreed && <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>✓</span>}
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 4 }}>개인정보 수집에 동의합니다</div>
@@ -310,8 +321,8 @@ export default function UriUmbba() {
         </div>
       </button>
 
-      <Btn disabled={!canSubmit} onClick={handleSubmit} v="accent">
-        {submitting ? "전송 중..." : "상담 신청하기"}
+      <Btn disabled={!filled || !localAgreed || localSubmitting} onClick={handleSubmit} v="accent">
+        {localSubmitting ? "전송 중..." : "상담 신청하기"}
       </Btn>
 
       <div style={{ textAlign: "center", marginTop: 12 }}>
