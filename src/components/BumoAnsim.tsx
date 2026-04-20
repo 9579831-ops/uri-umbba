@@ -391,25 +391,84 @@ export default function UriUmbba() {
   // ═══ 3단계 선택 페이지 ═══
   const ThreeLevelPage = ({ title, stepNum, label, items, data, setData, prevStep, nextStepTarget, nextLabel }) => {
     const ok = items.every((it) => data[it.key] !== undefined);
+    const [tried, setTried] = useState(false);
     const confirmBack = () => { if (window.confirm("이전 단계로 돌아가면 입력한 내용이 유지됩니다. 계속하시겠어요?")) go(prevStep); };
+    const handleNext = () => {
+      if (!ok) {
+        setTried(true);
+        // 첫 번째 미체크 항목으로 스크롤
+        const firstEmpty = items.find((it) => data[it.key] === undefined);
+        if (firstEmpty) {
+          const el = document.getElementById(`item-${firstEmpty.key}`);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
+      go(nextStepTarget);
+    };
     return (<div><Hdr title={title} onBack={confirmBack} /><div style={inner}><Prog current={stepNum} total={6} label={label} />
+      {tried && !ok && (
+        <div style={{ padding: "10px 14px", borderRadius: 10, background: C.dangerBg, border: `1.5px solid ${C.danger}`, marginTop: 12, fontSize: 14, color: C.danger, fontWeight: 600 }}>
+          ⚠️ 빨간 테두리 항목을 모두 선택해주세요
+        </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-        {items.map((it) => (<Crd key={it.key} style={{ padding: 14 }}><div style={{ fontSize: 16, fontWeight: 600, marginBottom: 10 }}>{it.label}</div><div style={{ display: "flex", gap: 6 }}>
-          {[["indep","혼자 가능"],["partial","조금 도움"],["full","많이 도움"]].map(([val,lbl]) => (<button key={val} onClick={() => setData({...data,[it.key]:val})} style={{...chip(data[it.key]===val),flex:1,...(data[it.key]===val?{background:val==="full"?C.accent:val==="partial"?C.warn:C.primary}:{})}}>{lbl}</button>))}
-        </div></Crd>))}
-      </div><div style={{marginTop:20}}><Btn disabled={!ok} onClick={()=>go(nextStepTarget)}>다음: {nextLabel} →</Btn></div></div></div>);
+        {items.map((it) => {
+          const empty = tried && data[it.key] === undefined;
+          return (
+            <Crd id={`item-${it.key}`} key={it.key} style={{ padding: 14, border: empty ? `2px solid ${C.danger}` : `1px solid ${C.border}`, background: empty ? C.dangerBg : C.card }}>
+              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 10, color: empty ? C.danger : C.text }}>{it.label}{empty && " ← 선택 필요"}</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[["indep","혼자 가능"],["partial","조금 도움"],["full","많이 도움"]].map(([val,lbl]) => (<button key={val} onClick={() => setData({...data,[it.key]:val})} style={{...chip(data[it.key]===val),flex:1,...(data[it.key]===val?{background:val==="full"?C.accent:val==="partial"?C.warn:C.primary}:{})}}>{lbl}</button>))}
+              </div>
+            </Crd>
+          );
+        })}
+      </div>
+      <div style={{marginTop:20}}><Btn onClick={handleNext}>다음: {nextLabel} →</Btn></div>
+    </div></div>);
   };
 
   // ═══ 예/아니오 페이지 ═══
   const YesNoPage = ({ title, stepNum, label, items, data, setData, prevStep, nextStepTarget, nextLabel }) => {
     const ok = items.every((it) => data[it.key] !== undefined);
+    const [tried, setTried] = useState(false);
     const confirmBack = () => { if (window.confirm("이전 단계로 돌아가면 입력한 내용이 유지됩니다. 계속하시겠어요?")) go(prevStep); };
+    const handleNext = () => {
+      if (!ok) {
+        setTried(true);
+        const firstEmpty = items.find((it) => data[it.key] === undefined);
+        if (firstEmpty) {
+          const el = document.getElementById(`item-${firstEmpty.key}`);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
+      go(nextStepTarget);
+    };
     return (<div><Hdr title={title} onBack={confirmBack} /><div style={inner}><Prog current={stepNum} total={6} label={label} />
+      {tried && !ok && (
+        <div style={{ padding: "10px 14px", borderRadius: 10, background: C.dangerBg, border: `1.5px solid ${C.danger}`, marginTop: 12, fontSize: 14, color: C.danger, fontWeight: 600 }}>
+          ⚠️ 빨간 테두리 항목을 모두 선택해주세요
+        </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-        {items.map((it) => (<Crd key={it.key} style={{ padding: 14 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}><span style={{ fontSize: 16, flex: 1 }}>{it.label}</span><div style={{ display: "flex", gap: 5 }}>
-          {[["예",true],["아니오",false]].map(([l,val]) => (<button key={String(l)} onClick={() => setData({...data,[it.key]:val})} style={{...chip(data[it.key]===val),...(data[it.key]===val?{background:val?C.danger:C.primary}:{})}}>{l}</button>))}
-        </div></div></Crd>))}
-      </div><div style={{marginTop:20}}><Btn disabled={!ok} onClick={()=>go(nextStepTarget)}>다음: {nextLabel} →</Btn></div></div></div>);
+        {items.map((it) => {
+          const empty = tried && data[it.key] === undefined;
+          return (
+            <Crd id={`item-${it.key}`} key={it.key} style={{ padding: 14, border: empty ? `2px solid ${C.danger}` : `1px solid ${C.border}`, background: empty ? C.dangerBg : C.card }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 16, flex: 1, color: empty ? C.danger : C.text, fontWeight: empty ? 700 : 400 }}>{it.label}{empty && " ← 선택 필요"}</span>
+                <div style={{ display: "flex", gap: 5 }}>
+                  {[["예",true],["아니오",false]].map(([l,val]) => (<button key={String(l)} onClick={() => setData({...data,[it.key]:val})} style={{...chip(data[it.key]===val),...(data[it.key]===val?{background:val?C.danger:C.primary}:{})}}>{l}</button>))}
+                </div>
+              </div>
+            </Crd>
+          );
+        })}
+      </div>
+      <div style={{marginTop:20}}><Btn onClick={handleNext}>다음: {nextLabel} →</Btn></div>
+    </div></div>);
   };
 
   // ═══ 간호처치 ═══
