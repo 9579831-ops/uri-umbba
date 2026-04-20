@@ -340,7 +340,7 @@ export default function UriUmbba() {
       <Prog current={1} total={6} label="STEP 1 · 기본정보" />
       <Crd style={{ marginBottom: 12, marginTop: 12 }}>
         <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>어르신 연세</label>
-        <input value={basic.age} onChange={(e) => setBasic({ ...basic, age: e.target.value })} placeholder="예: 78" type="number" style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: F, outline: "none", boxSizing: "border-box" }} />
+        <input defaultValue={basic.age} onBlur={(e) => setBasic((p) => ({ ...p, age: e.target.value }))} onInput={(e) => setBasic((p) => ({ ...p, age: (e.target as HTMLInputElement).value }))} placeholder="예: 78" type="number" style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: F, outline: "none", boxSizing: "border-box" }} />
       </Crd>
       <Crd style={{ marginBottom: 12 }}>
         <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 10 }}>거주 형태</label>
