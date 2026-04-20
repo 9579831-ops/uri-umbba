@@ -8,9 +8,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // ═══════════════════════════════════════════════════
 
 const STEPS = {
-  LANDING: 0, BASIC_INFO: 1, PHYSICAL: 2, SOCIAL: 3, COGNITION: 4, BEHAVIOR: 5, NURSING: 6,
+  LANDING: 0, USER_INFO: 13, BASIC_INFO: 1, PHYSICAL: 2, SOCIAL: 3, COGNITION: 4, BEHAVIOR: 5, NURSING: 6,
   RESULT: 7, CONSULT: 8, COST_CALC: 9, COST_RESULT: 10, CHECKLIST: 11, FAMILY_CARE: 12,
 };
+
+// Google Sheets 연동 URL
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbzTb80DlJgkbKdxPVwlxXMUWYFBrRAKBJ2UchqeQkSj44pfOQVEVcKwyTa25dqNqTc4/exec";
 
 // ── 2026 수가 ──
 const monthlyLimit = { "1": 1520700, "2": 1351700, "3": 1295400, "4": 1189800, "5": 1021300, "cogn": 573900 };
@@ -35,35 +38,35 @@ const groupHomeSelfs = { "1": 14918, "2": 13842, "3": 12760, "4": 12760, "5": 12
 
 // ── 평가 항목 ──
 const physicalItems = [
-  { key: "dressing", label: "옷 벗고 입기" }, { key: "washFace", label: "세수하기" }, { key: "brushTeeth", label: "양치질" },
-  { key: "bathing", label: "목욕하기" }, { key: "eating", label: "식사하기" }, { key: "posChange", label: "체위변경" },
-  { key: "sitStand", label: "일어나 앉기" }, { key: "transfer", label: "옮겨 앉기" }, { key: "goOutRoom", label: "방 밖으로 나오기" },
-  { key: "toiletUse", label: "화장실 사용" }, { key: "bowelCtrl", label: "대변 조절" }, { key: "urineCtrl", label: "소변 조절" },
+  { key: "dressing", label: "옷 혼자 갈아입기" }, { key: "washFace", label: "세수하기" }, { key: "brushTeeth", label: "양치질하기" },
+  { key: "bathing", label: "목욕하기" }, { key: "eating", label: "밥 혼자 드시기" }, { key: "posChange", label: "누워서 몸 돌리기" },
+  { key: "sitStand", label: "혼자 일어나 앉기" }, { key: "transfer", label: "침대에서 의자로 옮기기" }, { key: "goOutRoom", label: "방 밖으로 나오기" },
+  { key: "toiletUse", label: "화장실 혼자 가기" }, { key: "bowelCtrl", label: "대변 참기·조절" }, { key: "urineCtrl", label: "소변 참기·조절" },
   { key: "hairWash", label: "머리 감기" },
 ];
 const socialItems = [
-  { key: "housekeep", label: "집안일" }, { key: "mealPrep", label: "식사 준비" }, { key: "laundry", label: "빨래" },
-  { key: "moneyMgmt", label: "금전 관리" }, { key: "shopping", label: "물건 사기" }, { key: "phoneUse", label: "전화 사용" },
-  { key: "transport", label: "교통수단 이용" }, { key: "goingOut", label: "근거리 외출" }, { key: "grooming", label: "몸단장" },
-  { key: "medMgmt", label: "약 챙겨 먹기" },
+  { key: "housekeep", label: "집안일 하기 (청소 등)" }, { key: "mealPrep", label: "식사 준비하기" }, { key: "laundry", label: "빨래하기" },
+  { key: "moneyMgmt", label: "돈 관리하기" }, { key: "shopping", label: "장보기·물건 사기" }, { key: "phoneUse", label: "전화 걸고 받기" },
+  { key: "transport", label: "버스·지하철 타기" }, { key: "goingOut", label: "가까운 곳 외출" }, { key: "grooming", label: "옷 맵시·머리 단장" },
+  { key: "medMgmt", label: "약 챙겨서 드시기" },
 ];
 const cognitionItems = [
-  { key: "forgetRecent", label: "방금 들은 이야기를 잊음" }, { key: "notKnowDate", label: "오늘 날짜를 모름" },
-  { key: "notKnowPlace", label: "장소를 모름" }, { key: "notKnowAge", label: "나이/생일 모름" },
-  { key: "cantFollowInst", label: "지시 이해 어려움" }, { key: "poorJudge", label: "판단력 저하" },
-  { key: "commProblem", label: "의사소통 어려움" }, { key: "cantCalc", label: "계산 불가" },
-  { key: "cantRoutine", label: "일과 이해 어려움" }, { key: "cantRecogFamily", label: "가족 못 알아봄" },
+  { key: "forgetRecent", label: "방금 말한 것을 잊어버림" }, { key: "notKnowDate", label: "오늘이 며칠인지 모름" },
+  { key: "notKnowPlace", label: "지금 있는 곳이 어딘지 모름" }, { key: "notKnowAge", label: "자기 나이·생일을 모름" },
+  { key: "cantFollowInst", label: "시키는 말을 이해 못 함" }, { key: "poorJudge", label: "옳고 그름을 잘 모름" },
+  { key: "commProblem", label: "말이 잘 안 통함" }, { key: "cantCalc", label: "간단한 계산도 못 함" },
+  { key: "cantRoutine", label: "하루 일과를 이해 못 함" }, { key: "cantRecogFamily", label: "가족을 못 알아봄" },
 ];
 const behaviorItems = [
-  { key: "delusion", label: "망상" }, { key: "hallucin", label: "환각" }, { key: "depression", label: "우울" },
-  { key: "sleepIssue", label: "수면 문제" }, { key: "resistCare", label: "간병 거부" }, { key: "restless", label: "안절부절" },
-  { key: "wandering", label: "배회" }, { key: "aggression", label: "폭언·폭행" },
-  { key: "triesGoOut", label: "밖으로 나가려 함" }, { key: "inapprop", label: "부적절 행동" },
+  { key: "delusion", label: "없는 일을 사실이라고 믿음 (도둑 맞았다 등)" }, { key: "hallucin", label: "없는 것이 보이거나 들린다고 함" }, { key: "depression", label: "우울해하고 의욕이 없음" },
+  { key: "sleepIssue", label: "밤에 잠을 잘 못 주무심" }, { key: "resistCare", label: "돌봐주는 것을 거부함" }, { key: "restless", label: "가만히 있지 못하고 초조해함" },
+  { key: "wandering", label: "이유 없이 밖으로 나가 돌아다님" }, { key: "aggression", label: "욕하거나 때리려고 함" },
+  { key: "triesGoOut", label: "집을 나가려고 함" }, { key: "inapprop", label: "상황에 안 맞는 행동을 함" },
 ];
 const nursingItems = [
-  { key: "suction", label: "흡인" }, { key: "oxygen", label: "산소요법" }, { key: "soreCare", label: "욕창간호" },
-  { key: "tubeFeeding", label: "경관영양" }, { key: "catheter", label: "도뇨/장루" },
-  { key: "upperLimb", label: "상지 운동장애" }, { key: "lowerLimb", label: "하지 운동장애" }, { key: "jointLimit", label: "관절 제한" },
+  { key: "suction", label: "가래 뽑기 (흡인)" }, { key: "oxygen", label: "산소 호흡기 사용" }, { key: "soreCare", label: "욕창(등·엉덩이 상처) 치료" },
+  { key: "tubeFeeding", label: "콧줄·위장관으로 음식 넣기" }, { key: "catheter", label: "소변줄·장루 관리" },
+  { key: "upperLimb", label: "팔 움직이기 (마비 있는지)" }, { key: "lowerLimb", label: "다리 움직이기 (마비 있는지)" }, { key: "jointLimit", label: "관절이 굳어서 잘 안 움직임" },
 ];
 
 const checklistItems = [
@@ -73,7 +76,7 @@ const checklistItems = [
   { cat: "요양보호사", t: "교체 가능 여부 미리 확인", d: "요양보호사와 어르신의 궁합이 안 맞을 수 있습니다. 교체가 자유로운지 반드시 사전에 확인하세요.", how: "\"만약 안 맞으면 교체 가능한가요? 비용은요?\"", flag: "\"교체가 어렵다\" 또는 위약금을 요구하면 다른 센터 알아보기" },
   { cat: "비용", t: "본인부담금 외 추가비용 확인", d: "교통비, 식대, 명절 수당 등 추가로 나가는 돈이 있는지 꼭 물어보세요. 센터마다 다릅니다.", how: "\"본인부담금 외에 따로 내야 하는 비용이 있나요?\"", flag: "계약서에 없는 비용을 나중에 청구하면 부당청구" },
   { cat: "비용", t: "본인부담금 감면 대상 확인", d: "기초수급자는 무료, 차상위는 본인부담 경감됩니다. 해당 여부를 꼭 확인하세요.", how: "\"저희 부모님이 기초수급자인데 감면 되나요?\"", flag: "감면 대상인데 일반 요금을 청구하면 부당" },
-  { cat: "서비스", t: "케어 일지 공유 여부", d: "매일 어떤 서비스를 했는지 보호자에게 알려주는 센터가 좋습니다. 앱이나 카톡으로 일지를 공유하는지 확인하세요.", how: "\"케어 일지를 매일 받아볼 수 있나요?\"", flag: "\"그런 거 안 한다\"면 서비스 관리가 안 되는 센터" },
+  { cat: "서비스", t: "케어 일지 공유 여부", d: "매일 어떤 서비스를 했는지 보호자에게 알려주는 센터가 좋습니다. 앱이나 문자로 일지를 공유하는지 확인하세요.", how: "\"케어 일지를 매일 받아볼 수 있나요?\"", flag: "\"그런 거 안 한다\"면 서비스 관리가 안 되는 센터" },
   { cat: "서비스", t: "서비스 시간 정확히 지키는지", d: "계약된 시간보다 일찍 가거나 늦게 오는 경우가 많습니다. 첫 달은 어르신에게 몇 시에 왔는지 확인하세요.", how: "어르신에게 \"선생님 몇 시에 오셨어?\" 물어보기", flag: "시간을 자주 어기면 센터에 바로 말하기" },
   { cat: "긴급상황", t: "야간·주말 긴급 연락 체계", d: "어르신 상태가 급변하면 밤이나 주말에도 연락이 되어야 합니다. 24시간 연락 가능한지 확인하세요.", how: "\"밤에 급한 일이 생기면 어디로 연락하나요?\"", flag: "대표번호만 있고 야간 연락처가 없으면 불안" },
   { cat: "긴급상황", t: "대체 인력 투입 기준", d: "담당 요양보호사가 아프거나 휴가일 때 대체 인력이 바로 오는지 확인하세요. 빈 날이 생기면 어르신이 위험합니다.", how: "\"담당 선생님이 못 오시면 다른 분이 오나요?\"", flag: "\"대체 인력이 없어서 쉬어야 한다\"면 센터 규모가 너무 작은 것" },
@@ -107,14 +110,14 @@ function estimateGrade(score, basic) {
 }
 function getInsights(basic, physical, cognition, behavior) {
   const ins = [];
-  if (physical.toiletUse === "indep" && physical.bowelCtrl === "indep" && physical.urineCtrl === "indep") ins.push({ type: "info", text: "화장실·대소변 자립 → 중증도 낮게 평가 가능" });
+  if (physical.toiletUse === "indep" && physical.bowelCtrl === "indep" && physical.urineCtrl === "indep") ins.push({ type: "info", text: "화장실·대소변을 혼자 하심 → 상태가 괜찮은 편입니다" });
   const cog = Object.values(cognition).filter(Boolean).length;
-  if (cog >= 5) ins.push({ type: "warn", text: `인지 저하 ${cog}개 → 치매 정밀검사 권장` });
+  if (cog >= 5) ins.push({ type: "warn", text: `기억·판단력 문제가 ${cog}가지 → 병원에서 치매 검사 권장` });
   const beh = Object.values(behavior).filter(Boolean).length;
-  if (beh >= 4) ins.push({ type: "warn", text: `행동변화 ${beh}개 → 등급 가산 요인` });
-  if (basic.dementiaDx) ins.push({ type: "plus", text: "치매 진단 → 5등급/인지지원 가능성↑" });
+  if (beh >= 4) ins.push({ type: "warn", text: `이상 행동이 ${beh}가지 → 등급이 더 높게 나올 수 있습니다` });
+  if (basic.dementiaDx) ins.push({ type: "plus", text: "치매 진단 있음 → 5등급·인지지원등급 가능성 높음" });
   const full = Object.values(physical).filter((v) => v === "full").length;
-  if (full >= 8) ins.push({ type: "warn", text: `신체 '완전도움' ${full}개 → 상위등급 가능` });
+  if (full >= 8) ins.push({ type: "warn", text: `많은 도움이 필요한 항목이 ${full}가지 → 높은 등급 가능성` });
   return ins;
 }
 
@@ -146,6 +149,9 @@ export default function UriUmbba() {
   const [daycareDays, setDaycareDays] = useState("22");
   const [shortStayDays, setShortStayDays] = useState("15");
   const [checkedItems, setCheckedItems] = useState([]);
+  const [userInfo, setUserInfo] = useState({ name: "", phone: "", area: "" });
+  const [privacyAgreed, setPrivacyAgreed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const go = useCallback((target) => {
     setFade(false);
@@ -234,6 +240,76 @@ export default function UriUmbba() {
     </div>
   );
 
+  // ═══ 사용자 정보 입력 (Google Sheets 연동) ═══
+  const UserInfoPage = () => {
+    const canSubmit = userInfo.name.trim() && userInfo.phone.trim() && userInfo.area.trim() && privacyAgreed && !submitting;
+
+    const handleSubmit = async () => {
+      if (!canSubmit) return;
+      setSubmitting(true);
+      try {
+        await fetch(SHEET_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: userInfo.name.trim(), phone: userInfo.phone.trim(), area: userInfo.area.trim() }),
+        });
+      } catch (e) { /* no-cors */ }
+      setSubmitting(false);
+      go(STEPS.CONSULT);
+    };
+
+    const inputStyle = { width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: F, outline: "none", boxSizing: "border-box" as const, background: C.card };
+
+    return (<div><Hdr title="상담 신청" onBack={() => go(STEPS.RESULT)} /><div style={inner}>
+      <div style={{ textAlign: "center", padding: "28px 0 20px" }}>
+        <div style={{ fontSize: 40, marginBottom: 8 }}>📞</div>
+        <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 8px" }}>등급 판정 이후 상담을 받고 싶으신 분은</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 8px", color: C.primary }}>정보를 입력해주세요</h2>
+        <p style={{ fontSize: 14, color: C.textSub, margin: 0, lineHeight: 1.6 }}>전문 상담사가 직접 연락드립니다</p>
+      </div>
+
+      <Crd style={{ marginBottom: 12, marginTop: 8 }}>
+        <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>이름</label>
+        <input value={userInfo.name} onChange={(e) => setUserInfo({ ...userInfo, name: e.target.value })} placeholder="예: 홍길동" style={inputStyle} />
+      </Crd>
+
+      <Crd style={{ marginBottom: 12 }}>
+        <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>전화번호</label>
+        <input value={userInfo.phone} onChange={(e) => setUserInfo({ ...userInfo, phone: e.target.value })} placeholder="예: 010-1234-5678" type="tel" style={inputStyle} />
+      </Crd>
+
+      <Crd style={{ marginBottom: 16 }}>
+        <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>지역 (시·구)</label>
+        <input value={userInfo.area} onChange={(e) => setUserInfo({ ...userInfo, area: e.target.value })} placeholder="예: 성북구, 강북구, 수원시 등" style={inputStyle} />
+      </Crd>
+
+      <button onClick={() => setPrivacyAgreed(!privacyAgreed)} style={{ display: "flex", alignItems: "flex-start", gap: 10, width: "100%", padding: "14px 16px", marginBottom: 20, borderRadius: 12, border: privacyAgreed ? `2px solid ${C.primary}` : `1.5px solid ${C.border}`, background: privacyAgreed ? C.primaryLight : C.card, cursor: "pointer", fontFamily: F, textAlign: "left" }}>
+        <div style={{ width: 22, height: 22, borderRadius: 6, border: privacyAgreed ? "none" : `2px solid ${C.border}`, background: privacyAgreed ? C.primary : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+          {privacyAgreed && <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>✓</span>}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 4 }}>개인정보 수집에 동의합니다</div>
+          <div style={{ fontSize: 12, color: C.textSub, lineHeight: 1.5 }}>
+            수집 항목: 이름, 전화번호, 지역<br />
+            수집 목적: 상담 연결 안내<br />
+            보관 기간: 상담 완료 후 1년 이내 파기
+          </div>
+        </div>
+      </button>
+
+      <Btn disabled={!canSubmit} onClick={handleSubmit} v="accent">
+        {submitting ? "전송 중..." : "상담 신청하기"}
+      </Btn>
+
+      <div style={{ textAlign: "center", marginTop: 12 }}>
+        <button onClick={() => go(STEPS.CONSULT)} style={{ background: "none", border: "none", fontSize: 13, color: C.textSub, cursor: "pointer", fontFamily: F, textDecoration: "underline" }}>
+          입력 없이 직접 전화하기
+        </button>
+      </div>
+    </div></div>);
+  };
+
   // ═══ 기본정보 ═══
   const BasicInfo = () => {
     const done = basic.age && basic.livingAlone !== null;
@@ -253,7 +329,7 @@ export default function UriUmbba() {
       </Crd>
       <Crd style={{ marginBottom: 12 }}>
         <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 10 }}>치매 관련</label>
-        {[["dementiaDx", "병원 치매 진단 이력"], ["recentDementia", "최근 2년 치매 진료/검사"], ["wandering", "배회·문제행동"]].map(([k, l]) => (
+        {[["dementiaDx", "병원에서 치매 진단받은 적 있음"], ["recentDementia", "최근 2년 안에 치매 검사·진료 받음"], ["wandering", "이유 없이 돌아다니거나 이상 행동 있음"]].map(([k, l]) => (
           <button key={k} onClick={() => setBasic({ ...basic, [k]: !basic[k] })} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 12px", marginBottom: 6, borderRadius: 10, border: basic[k] ? `2px solid ${C.primary}` : `1.5px solid ${C.border}`, background: basic[k] ? C.primaryLight : C.card, cursor: "pointer", fontFamily: F, fontSize: 14, color: C.text, fontWeight: basic[k] ? 600 : 400, textAlign: "left" }}>
             <div style={{ width: 20, height: 20, borderRadius: 6, border: basic[k] ? "none" : `2px solid ${C.border}`, background: basic[k] ? C.primary : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{basic[k] && <span style={{ color: "#fff", fontSize: 12 }}>✓</span>}</div>{l}
           </button>
@@ -269,7 +345,7 @@ export default function UriUmbba() {
     return (<div><Hdr title={title} onBack={() => go(prevStep)} /><div style={inner}><Prog current={stepNum} total={6} label={label} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
         {items.map((it) => (<Crd key={it.key} style={{ padding: 14 }}><div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{it.label}</div><div style={{ display: "flex", gap: 6 }}>
-          {[["indep","자립"],["partial","부분도움"],["full","완전도움"]].map(([val,lbl]) => (<button key={val} onClick={() => setData({...data,[it.key]:val})} style={{...chip(data[it.key]===val),flex:1,...(data[it.key]===val?{background:val==="full"?C.accent:val==="partial"?C.warn:C.primary}:{})}}>{lbl}</button>))}
+          {[["indep","혼자 가능"],["partial","조금 도움"],["full","많이 도움"]].map(([val,lbl]) => (<button key={val} onClick={() => setData({...data,[it.key]:val})} style={{...chip(data[it.key]===val),flex:1,...(data[it.key]===val?{background:val==="full"?C.accent:val==="partial"?C.warn:C.primary}:{})}}>{lbl}</button>))}
         </div></Crd>))}
       </div><div style={{marginTop:20}}><Btn disabled={!ok} onClick={()=>go(nextStepTarget)}>다음: {nextLabel} →</Btn></div></div></div>);
   };
@@ -289,7 +365,7 @@ export default function UriUmbba() {
   const NursingPage = () => {
     const bools = nursingItems.slice(0,5), rehab = nursingItems.slice(5);
     const ok = bools.every(it=>nursing[it.key]!==undefined)&&rehab.every(it=>nursing[it.key]!==undefined);
-    return (<div><Hdr title="간호처치·재활" onBack={()=>go(STEPS.BEHAVIOR)} /><div style={inner}><Prog current={6} total={6} label="STEP 6" />
+    return (<div><Hdr title="의료·재활" onBack={()=>go(STEPS.BEHAVIOR)} /><div style={inner}><Prog current={6} total={6} label="STEP 6 · 마지막" />
       <p style={{fontSize:13,fontWeight:700,margin:"14px 0 8px"}}>간호처치</p>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {bools.map(it=>(<Crd key={it.key} style={{padding:14}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}><span style={{fontSize:14,flex:1}}>{it.label}</span><div style={{display:"flex",gap:5}}>
@@ -300,7 +376,7 @@ export default function UriUmbba() {
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {rehab.map(it=>(<Crd key={it.key} style={{padding:14}}><div style={{fontSize:14,fontWeight:600,marginBottom:10}}>{it.label}</div>
           {it.key==="jointLimit"?<div style={{display:"flex",gap:6}}>{[["있음",true],["없음",false]].map(([l,val])=>(<button key={String(l)} onClick={()=>setNursing({...nursing,[it.key]:val})} style={{...chip(nursing[it.key]===val),flex:1,...(nursing[it.key]===val?{background:C.accent}:{})}}>{l}</button>))}</div>
-          :<div style={{display:"flex",gap:6}}>{[["없음","none"],["부분","partial"],["완전","full"]].map(([l,val])=>(<button key={val} onClick={()=>setNursing({...nursing,[it.key]:val})} style={{...chip(nursing[it.key]===val),flex:1,...(nursing[it.key]===val?{background:val==="full"?C.accent:val==="partial"?C.warn:C.primary}:{})}}>{l}</button>))}</div>}
+          :<div style={{display:"flex",gap:6}}>{[["정상","none"],["조금 불편","partial"],["많이 불편","full"]].map(([l,val])=>(<button key={val} onClick={()=>setNursing({...nursing,[it.key]:val})} style={{...chip(nursing[it.key]===val),flex:1,...(nursing[it.key]===val?{background:val==="full"?C.accent:val==="partial"?C.warn:C.primary}:{})}}>{l}</button>))}</div>}
         </Crd>))}
       </div>
       <div style={{marginTop:20}}><Btn disabled={!ok} onClick={()=>go(STEPS.RESULT)} v="accent">결과 확인</Btn></div>
@@ -313,16 +389,16 @@ export default function UriUmbba() {
     const est=estimateGrade(score,basic);
     const ins=getInsights(basic,physical,cognition,behavior);
     const recs=[];
-    if(basic.dementiaDx||basic.recentDementia){recs.push("의사소견서 확보");recs.push("치매 진료기록 정리");}
-    if(est.grade!=="등급외"){recs.push("공단 인정 신청");recs.push("ADL 상태 정리");}else{recs.push("노인맞춤돌봄 확인");}
-    recs.push("전문 상담 진행");
+    if(basic.dementiaDx||basic.recentDementia){recs.push("병원에서 의사 소견서 받기");recs.push("치매 진료 기록 미리 챙기기");}
+    if(est.grade!=="등급외"){recs.push("건강보험공단에 등급 신청하기");recs.push("평소 생활 모습 메모해두기");}else{recs.push("주민센터에서 '노인맞춤돌봄' 문의하기");}
+    recs.push("전문가와 상담 받기");
     const icoT={info:"ℹ️",warn:"⚠️",plus:"✅"};const bgT={info:"#F0F9FF",warn:C.warnBg,plus:C.safeBg};
     return (<div><Hdr title="판별 결과" onBack={resetAll} /><div style={inner}>
       <div style={{textAlign:"center",padding:"36px 0 20px"}}><div style={{fontSize:48,marginBottom:8}}>{est.emoji}</div><div style={{display:"inline-block",padding:"8px 20px",borderRadius:24,background:est.color,color:"#fff",fontSize:18,fontWeight:800}}>{est.grade} 가능성</div><div style={{fontSize:13,color:C.textSub,marginTop:4}}>신뢰도: {est.conf}</div><div style={{fontSize:32,fontWeight:900,color:est.color,marginTop:10}}>{score}점</div></div>
       <Crd style={{marginBottom:12}}><div style={{fontSize:14,fontWeight:700,marginBottom:12}}>📊 분석</div>{ins.map((i,idx)=>(<div key={idx} style={{padding:"10px 12px",borderRadius:10,background:bgT[i.type],fontSize:13,marginBottom:6,display:"flex",gap:8}}><span>{icoT[i.type]}</span><span>{i.text}</span></div>))}</Crd>
       <Crd style={{marginBottom:12}}><div style={{fontSize:14,fontWeight:700,marginBottom:10}}>✅ 권장</div>{recs.map((r,i)=>(<div key={i} style={{padding:"5px 0",fontSize:13}}><span style={{color:C.primary,fontWeight:700}}>{i+1}.</span> {r}</div>))}</Crd>
       <div style={{margin:"12px 0",padding:14,borderRadius:10,background:C.accentLight,border:`1.5px solid ${C.accent}`}}><p style={{fontSize:11,color:C.textSub,margin:0,lineHeight:1.6}}>⚠️ 사전 예측입니다. 실제 판정은 공단 조사·의사소견서·등급판정위원회에 따라 다릅니다.</p></div>
-      <div style={{display:"flex",flexDirection:"column",gap:10}}><Btn v="accent" onClick={()=>go(STEPS.CONSULT)}>전문 상담</Btn><Btn v="outline" onClick={()=>go(STEPS.COST_CALC)}>비용 계산</Btn><Btn v="ghost" onClick={resetAll}>처음으로</Btn></div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}><Btn v="accent" onClick={()=>go(STEPS.USER_INFO)}>상담 신청하기</Btn><Btn v="outline" onClick={()=>go(STEPS.COST_CALC)}>비용 계산</Btn><Btn v="ghost" onClick={resetAll}>처음으로</Btn></div>
     </div></div>);
   };
 
@@ -367,9 +443,9 @@ export default function UriUmbba() {
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
           <div>
             <div style={{fontSize:15,fontWeight:800,color:C.text}}>경기방문요양센터</div>
-            <div style={{fontSize:12,color:C.textSub}}>서울, 경기 지역 방문요양 전문</div>
+            <div style={{fontSize:12,color:C.textSub}}>경기 지역 방문요양 전문</div>
           </div>
-          <span style={{fontSize:11,fontWeight:700,color:"#fff",background:C.primary,padding:"3px 8px",borderRadius:6,height:"fit-content"}}>우수</span>
+          <span style={{fontSize:11,fontWeight:700,color:"#fff",background:C.primary,padding:"3px 8px",borderRadius:6,height:"fit-content"}}>A등급</span>
         </div>
         <div style={{fontSize:13,color:C.primaryDark,fontWeight:600,padding:"7px 10px",background:C.primaryLight,borderRadius:8,marginBottom:10}}>
           ✨ 친절한 요양보호사 · 꼼꼼한 케어
@@ -398,13 +474,13 @@ export default function UriUmbba() {
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>{(costType==="shortStay"||costType==="facility"||costType==="groupHome"?["1","2","3","4","5"]:["1","2","3","4","5","cogn"]).map(g=>(<button key={g} onClick={()=>setCostGrade(g)} style={chip(costGrade===g)}>{gl[g]}</button>))}</div>
         {costType==="visit"&&(<Crd style={{marginBottom:16}}>
           <p style={{fontSize:13,fontWeight:700,margin:"0 0 10px"}}>1회 시간</p><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>{visitCare.map((vc,i)=>(<button key={i} onClick={()=>setVisitIdx(i)} style={{...chip(visitIdx===i),fontSize:12}}>{vc.label}<br/><span style={{fontSize:11,fontWeight:400}}>{vc.fee.toLocaleString()}원</span></button>))}</div>
-          <p style={{fontSize:13,fontWeight:700,margin:"0 0 10px"}}>월 일수</p><div style={{display:"flex",gap:6}}>{["15","18","20","22","25"].map(d=>(<button key={d} onClick={()=>setVisitDays(d)} style={chip(visitDays===d)}>{d}일</button>))}</div>
+          <p style={{fontSize:13,fontWeight:700,margin:"0 0 10px"}}>한 달에 며칠 이용하시나요?</p><input value={visitDays} onChange={(e)=>setVisitDays(e.target.value.replace(/[^0-9]/g,""))} placeholder="예: 22" type="tel" style={{width:"100%",padding:"12px 14px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:16,fontFamily:F,outline:"none",boxSizing:"border-box"}} /><div style={{fontSize:12,color:C.textSub,marginTop:6}}>보통 주 5일이면 22일, 주 3일이면 13일</div>
         </Crd>)}
         {costType==="daycare"&&(<Crd style={{marginBottom:16}}>
           <p style={{fontSize:13,fontWeight:700,margin:"0 0 10px"}}>1일 시간</p><div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>{Object.entries(dayCareFees).map(([code,data])=>(<button key={code} onClick={()=>setDaycareTime(code)} style={{...chip(daycareTime===code),textAlign:"left",padding:"10px 14px"}}>{code} ({data.label}) — {(data[costGrade]||0).toLocaleString()}원</button>))}</div>
-          <p style={{fontSize:13,fontWeight:700,margin:"0 0 10px"}}>월 일수</p><div style={{display:"flex",gap:6}}>{["15","18","20","22","25"].map(d=>(<button key={d} onClick={()=>setDaycareDays(d)} style={chip(daycareDays===d)}>{d}일</button>))}</div>
+          <p style={{fontSize:13,fontWeight:700,margin:"0 0 10px"}}>한 달에 며칠 이용하시나요?</p><input value={daycareDays} onChange={(e)=>setDaycareDays(e.target.value.replace(/[^0-9]/g,""))} placeholder="예: 22" type="tel" style={{width:"100%",padding:"12px 14px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:16,fontFamily:F,outline:"none",boxSizing:"border-box"}} /><div style={{fontSize:12,color:C.textSub,marginTop:6}}>보통 주 5일이면 22일, 주 3일이면 13일</div>
         </Crd>)}
-        {costType==="shortStay"&&(<Crd style={{marginBottom:16}}><p style={{fontSize:13,fontWeight:700,margin:"0 0 10px"}}>일수</p><div style={{display:"flex",gap:6}}>{["7","10","15","20","30"].map(d=>(<button key={d} onClick={()=>setShortStayDays(d)} style={chip(shortStayDays===d)}>{d}일</button>))}</div></Crd>)}
+        {costType==="shortStay"&&(<Crd style={{marginBottom:16}}><p style={{fontSize:13,fontWeight:700,margin:"0 0 10px"}}>며칠 이용하시나요?</p><input value={shortStayDays} onChange={(e)=>setShortStayDays(e.target.value.replace(/[^0-9]/g,""))} placeholder="예: 15" type="tel" style={{width:"100%",padding:"12px 14px",borderRadius:10,border:`1.5px solid ${C.border}`,fontSize:16,fontFamily:F,outline:"none",boxSizing:"border-box"}} /><div style={{fontSize:12,color:C.textSub,marginTop:6}}>보통 1~2주(7~15일) 이용</div></Crd>)}
         <Btn onClick={()=>go(STEPS.COST_RESULT)}>비용 계산하기</Btn>
       </>)}
     </div></div>);
@@ -568,11 +644,12 @@ export default function UriUmbba() {
   return (
     <div ref={ref} style={{ fontFamily: F, background: C.bg, minHeight: "100vh", maxWidth: 480, margin: "0 auto" }}>
       {step === STEPS.LANDING && <Landing />}
+      {step === STEPS.USER_INFO && <UserInfoPage />}
       {step === STEPS.BASIC_INFO && <BasicInfo />}
-      {step === STEPS.PHYSICAL && <ThreeLevelPage title="신체기능" stepNum={2} label="STEP 2 · 신체 (13)" items={physicalItems} data={physical} setData={setPhysical} prevStep={STEPS.BASIC_INFO} nextStepTarget={STEPS.SOCIAL} nextLabel="사회생활" />}
-      {step === STEPS.SOCIAL && <ThreeLevelPage title="사회생활" stepNum={3} label="STEP 3 · 사회 (10)" items={socialItems} data={social} setData={setSocial} prevStep={STEPS.PHYSICAL} nextStepTarget={STEPS.COGNITION} nextLabel="인지기능" />}
-      {step === STEPS.COGNITION && <YesNoPage title="인지기능" stepNum={4} label="STEP 4 · 인지 (10)" items={cognitionItems} data={cognition} setData={setCognition} prevStep={STEPS.SOCIAL} nextStepTarget={STEPS.BEHAVIOR} nextLabel="행동변화" />}
-      {step === STEPS.BEHAVIOR && <YesNoPage title="행동변화" stepNum={5} label="STEP 5 · 행동 (10)" items={behaviorItems} data={behavior} setData={setBehavior} prevStep={STEPS.COGNITION} nextStepTarget={STEPS.NURSING} nextLabel="간호처치" />}
+      {step === STEPS.PHYSICAL && <ThreeLevelPage title="몸 움직임" stepNum={2} label="STEP 2 · 몸 움직임 (13)" items={physicalItems} data={physical} setData={setPhysical} prevStep={STEPS.BASIC_INFO} nextStepTarget={STEPS.SOCIAL} nextLabel="집안·바깥 활동" />}
+      {step === STEPS.SOCIAL && <ThreeLevelPage title="집안·바깥 활동" stepNum={3} label="STEP 3 · 집안·바깥 (10)" items={socialItems} data={social} setData={setSocial} prevStep={STEPS.PHYSICAL} nextStepTarget={STEPS.COGNITION} nextLabel="기억·판단력" />}
+      {step === STEPS.COGNITION && <YesNoPage title="기억·판단력" stepNum={4} label="STEP 4 · 기억력 (10)" items={cognitionItems} data={cognition} setData={setCognition} prevStep={STEPS.SOCIAL} nextStepTarget={STEPS.BEHAVIOR} nextLabel="이상 행동" />}
+      {step === STEPS.BEHAVIOR && <YesNoPage title="이상 행동" stepNum={5} label="STEP 5 · 이상 행동 (10)" items={behaviorItems} data={behavior} setData={setBehavior} prevStep={STEPS.COGNITION} nextStepTarget={STEPS.NURSING} nextLabel="의료·재활" />}
       {step === STEPS.NURSING && <NursingPage />}
       {step === STEPS.RESULT && <ResultPage />}
       {step === STEPS.CONSULT && <ConsultPage />}
