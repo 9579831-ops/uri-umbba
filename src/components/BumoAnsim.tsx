@@ -158,6 +158,24 @@ export default function UriUmbba() {
     setTimeout(() => { setStep(target); setFade(true); ref.current?.scrollTo(0, 0); }, 180);
   }, []);
 
+  const sendToSheets = useCallback(async (name: string, phone: string, area: string) => {
+    const score = calcScore(basic, physical, social, cognition, behavior, nursing);
+    const est = estimateGrade(score, basic);
+    try {
+      await fetch(SHEET_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          name, phone, area,
+          score: score,
+          grade: est.grade,
+          submitAt: new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }),
+        }),
+      });
+    } catch (e) { /* no-cors 정상 */ }
+  }, [basic, physical, social, cognition, behavior, nursing]);
+
   const resetAll = () => {
     setBasic({ age: "", livingAlone: null, dementiaDx: false, recentDementia: false, wandering: false });
     setPhysical({}); setSocial({}); setCognition({}); setBehavior({}); setNursing({});
@@ -263,21 +281,7 @@ export default function UriUmbba() {
       const phone = phoneRef.current?.value.trim() || "";
       const area = areaRef.current?.value.trim() || "";
       setLocalSubmitting(true);
-      const score = calcScore(basic, physical, social, cognition, behavior, nursing);
-      const est = estimateGrade(score, basic);
-      try {
-        await fetch(SHEET_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({
-            name, phone, area,
-            score: score,
-            grade: est.grade,
-            submitAt: new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }),
-          }),
-        });
-      } catch (e) { /* no-cors 정상 */ }
+      await sendToSheets(name, phone, area);
       setLocalSubmitting(false);
       go(STEPS.CONSULT);
     };
