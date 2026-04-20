@@ -283,17 +283,17 @@ export default function UriUmbba() {
 
       <Crd style={{ marginBottom: 12, marginTop: 8 }}>
         <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>이름</label>
-        <input value={userInfo.name} onChange={(e) => setUserInfo({ ...userInfo, name: e.target.value })} placeholder="예: 홍길동" style={inputStyle} />
+        <input defaultValue={userInfo.name} onBlur={(e) => setUserInfo((p) => ({ ...p, name: e.target.value }))} onChange={(e) => setUserInfo((p) => ({ ...p, name: e.target.value }))} placeholder="예: 홍길동" style={inputStyle} />
       </Crd>
 
       <Crd style={{ marginBottom: 12 }}>
         <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>전화번호</label>
-        <input value={userInfo.phone} onChange={(e) => setUserInfo({ ...userInfo, phone: e.target.value })} placeholder="예: 010-1234-5678" type="tel" style={inputStyle} />
+        <input defaultValue={userInfo.phone} onBlur={(e) => setUserInfo((p) => ({ ...p, phone: e.target.value }))} onChange={(e) => setUserInfo((p) => ({ ...p, phone: e.target.value }))} placeholder="예: 010-1234-5678" type="tel" style={inputStyle} />
       </Crd>
 
       <Crd style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>지역 (시·구)</label>
-        <input value={userInfo.area} onChange={(e) => setUserInfo({ ...userInfo, area: e.target.value })} placeholder="예: 성북구, 강북구, 수원시 등" style={inputStyle} />
+        <input defaultValue={userInfo.area} onBlur={(e) => setUserInfo((p) => ({ ...p, area: e.target.value }))} onChange={(e) => setUserInfo((p) => ({ ...p, area: e.target.value }))} placeholder="예: 성북구, 강북구, 수원시 등" style={inputStyle} />
       </Crd>
 
       <button onClick={() => setPrivacyAgreed(!privacyAgreed)} style={{ display: "flex", alignItems: "flex-start", gap: 10, width: "100%", padding: "14px 16px", marginBottom: 20, borderRadius: 12, border: privacyAgreed ? `2px solid ${C.primary}` : `1.5px solid ${C.border}`, background: privacyAgreed ? C.primaryLight : C.card, cursor: "pointer", fontFamily: F, textAlign: "left" }}>
