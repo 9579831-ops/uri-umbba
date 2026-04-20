@@ -152,6 +152,8 @@ export default function UriUmbba() {
   const [userInfo, setUserInfo] = useState({ name: "", phone: "", area: "" });
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [resultScore, setResultScore] = useState<number>(0);
+  const [resultGrade, setResultGrade] = useState<string>("");
 
   const go = useCallback((target) => {
     setFade(false);
@@ -281,7 +283,19 @@ export default function UriUmbba() {
       const phone = phoneRef.current?.value.trim() || "";
       const area = areaRef.current?.value.trim() || "";
       setLocalSubmitting(true);
-      await sendToSheets(name, phone, area);
+      try {
+        await fetch(SHEET_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            name, phone, area,
+            score: resultScore,
+            grade: resultGrade,
+            submitAt: new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }),
+          }),
+        });
+      } catch (e) { /* no-cors 정상 */ }
       setLocalSubmitting(false);
       go(STEPS.CONSULT);
     };
@@ -291,7 +305,13 @@ export default function UriUmbba() {
     return (<div><Hdr title="상담 신청" onBack={() => go(STEPS.RESULT)} /><div style={inner}>
       <div style={{ textAlign: "center", padding: "28px 0 20px" }}>
         <div style={{ fontSize: 40, marginBottom: 8 }}>📞</div>
-        <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 8px" }}>등급 판정 이후 상담을 받고 싶으신 분은</h2>
+        {resultGrade && (
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "10px 20px", borderRadius: 14, background: C.primaryLight, border: `1.5px solid ${C.primary}`, marginBottom: 14 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.primary }}>📊 {resultGrade} 가능성</span>
+            <span style={{ fontSize: 13, color: C.textSub }}>({resultScore}점)</span>
+          </div>
+        )}
+        <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 8px" }}>상담을 받고 싶으신 분은</h2>
         <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 8px", color: C.primary }}>정보를 입력해주세요</h2>
         <p style={{ fontSize: 14, color: C.textSub, margin: 0, lineHeight: 1.6 }}>전문 상담사가 직접 연락드립니다</p>
       </div>
@@ -427,7 +447,7 @@ export default function UriUmbba() {
       <Crd style={{marginBottom:12}}><div style={{fontSize:14,fontWeight:700,marginBottom:12}}>📊 분석</div>{ins.map((i,idx)=>(<div key={idx} style={{padding:"10px 12px",borderRadius:10,background:bgT[i.type],fontSize:13,marginBottom:6,display:"flex",gap:8}}><span>{icoT[i.type]}</span><span>{i.text}</span></div>))}</Crd>
       <Crd style={{marginBottom:12}}><div style={{fontSize:14,fontWeight:700,marginBottom:10}}>✅ 권장</div>{recs.map((r,i)=>(<div key={i} style={{padding:"5px 0",fontSize:13}}><span style={{color:C.primary,fontWeight:700}}>{i+1}.</span> {r}</div>))}</Crd>
       <div style={{margin:"12px 0",padding:14,borderRadius:10,background:C.accentLight,border:`1.5px solid ${C.accent}`}}><p style={{fontSize:11,color:C.textSub,margin:0,lineHeight:1.6}}>⚠️ 사전 예측입니다. 실제 판정은 공단 조사·의사소견서·등급판정위원회에 따라 다릅니다.</p></div>
-      <div style={{display:"flex",flexDirection:"column",gap:10}}><Btn v="accent" onClick={()=>go(STEPS.USER_INFO)}>상담 신청하기</Btn><Btn v="outline" onClick={()=>go(STEPS.COST_CALC)}>비용 계산</Btn><Btn v="ghost" onClick={resetAll}>처음으로</Btn></div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}><Btn v="accent" onClick={()=>{ setResultScore(score); setResultGrade(est.grade); go(STEPS.USER_INFO); }}>상담 신청하기</Btn><Btn v="outline" onClick={()=>go(STEPS.COST_CALC)}>비용 계산</Btn><Btn v="ghost" onClick={resetAll}>처음으로</Btn></div>
     </div></div>);
   };
 
