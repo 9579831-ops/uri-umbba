@@ -434,20 +434,99 @@ export default function UriUmbba() {
 
   // ═══ 결과 ═══
   const ResultPage = () => {
-    const score=calcScore(basic,physical,social,cognition,behavior,nursing);
-    const est=estimateGrade(score,basic);
-    const ins=getInsights(basic,physical,cognition,behavior);
-    const recs=[];
+    const score = calcScore(basic, physical, social, cognition, behavior, nursing);
+    const est = estimateGrade(score, basic);
+    const ins = getInsights(basic, physical, cognition, behavior);
+    const recs = [];
     if(basic.dementiaDx||basic.recentDementia){recs.push("병원에서 의사 소견서 받기");recs.push("치매 진료 기록 미리 챙기기");}
     if(est.grade!=="등급외"){recs.push("건강보험공단에 등급 신청하기");recs.push("평소 생활 모습 메모해두기");}else{recs.push("주민센터에서 '노인맞춤돌봄' 문의하기");}
     recs.push("전문가와 상담 받기");
     const icoT={info:"ℹ️",warn:"⚠️",plus:"✅"};const bgT={info:"#F0F9FF",warn:C.warnBg,plus:C.safeBg};
+
+    // 상담신청 폼 state
+    const nameRef2 = useRef<HTMLInputElement>(null);
+    const phoneRef2 = useRef<HTMLInputElement>(null);
+    const areaRef2 = useRef<HTMLInputElement>(null);
+    const [agreed, setAgreed] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [sent, setSent] = useState(false);
+    const [showForm, setShowForm] = useState(false);
+
+    const inputStyle2: React.CSSProperties = { width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 15, fontFamily: F, outline: "none", boxSizing: "border-box", background: C.card };
+
+    const handleConsult = async () => {
+      const name = nameRef2.current?.value.trim() || "";
+      const phone = phoneRef2.current?.value.trim() || "";
+      const area = areaRef2.current?.value.trim() || "";
+      if (!name || !phone || !area || !agreed) return;
+      setSending(true);
+      try {
+        await fetch(SHEET_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            name, phone, area,
+            score: score,
+            grade: est.grade,
+            submitAt: new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }),
+          }),
+        });
+      } catch(e) {}
+      setSending(false);
+      setSent(true);
+      setTimeout(() => go(STEPS.CONSULT), 1000);
+    };
+
     return (<div><Hdr title="판별 결과" onBack={resetAll} /><div style={inner}>
-      <div style={{textAlign:"center",padding:"36px 0 20px"}}><div style={{fontSize:48,marginBottom:8}}>{est.emoji}</div><div style={{display:"inline-block",padding:"8px 20px",borderRadius:24,background:est.color,color:"#fff",fontSize:18,fontWeight:800}}>{est.grade} 가능성</div><div style={{fontSize:13,color:C.textSub,marginTop:4}}>신뢰도: {est.conf}</div><div style={{fontSize:32,fontWeight:900,color:est.color,marginTop:10}}>{score}점</div></div>
+      <div style={{textAlign:"center",padding:"36px 0 20px"}}>
+        <div style={{fontSize:48,marginBottom:8}}>{est.emoji}</div>
+        <div style={{display:"inline-block",padding:"8px 20px",borderRadius:24,background:est.color,color:"#fff",fontSize:18,fontWeight:800}}>{est.grade} 가능성</div>
+        <div style={{fontSize:13,color:C.textSub,marginTop:4}}>신뢰도: {est.conf}</div>
+        <div style={{fontSize:32,fontWeight:900,color:est.color,marginTop:10}}>{score}점</div>
+      </div>
+
       <Crd style={{marginBottom:12}}><div style={{fontSize:14,fontWeight:700,marginBottom:12}}>📊 분석</div>{ins.map((i,idx)=>(<div key={idx} style={{padding:"10px 12px",borderRadius:10,background:bgT[i.type],fontSize:13,marginBottom:6,display:"flex",gap:8}}><span>{icoT[i.type]}</span><span>{i.text}</span></div>))}</Crd>
       <Crd style={{marginBottom:12}}><div style={{fontSize:14,fontWeight:700,marginBottom:10}}>✅ 권장</div>{recs.map((r,i)=>(<div key={i} style={{padding:"5px 0",fontSize:13}}><span style={{color:C.primary,fontWeight:700}}>{i+1}.</span> {r}</div>))}</Crd>
       <div style={{margin:"12px 0",padding:14,borderRadius:10,background:C.accentLight,border:`1.5px solid ${C.accent}`}}><p style={{fontSize:11,color:C.textSub,margin:0,lineHeight:1.6}}>⚠️ 사전 예측입니다. 실제 판정은 공단 조사·의사소견서·등급판정위원회에 따라 다릅니다.</p></div>
-      <div style={{display:"flex",flexDirection:"column",gap:10}}><Btn v="accent" onClick={()=>{ setResultScore(score); setResultGrade(est.grade); go(STEPS.USER_INFO); }}>상담 신청하기</Btn><Btn v="outline" onClick={()=>go(STEPS.COST_CALC)}>비용 계산</Btn><Btn v="ghost" onClick={resetAll}>처음으로</Btn></div>
+
+      {!showForm ? (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <Btn v="accent" onClick={()=>setShowForm(true)}>상담 신청하기</Btn>
+          <Btn v="outline" onClick={()=>go(STEPS.COST_CALC)}>비용 계산</Btn>
+          <Btn v="ghost" onClick={resetAll}>처음으로</Btn>
+        </div>
+      ) : (
+        <Crd style={{marginTop:8,border:`2px solid ${C.primary}`}}>
+          <div style={{fontSize:15,fontWeight:800,color:C.primary,marginBottom:4}}>📞 상담 신청</div>
+          <div style={{fontSize:12,color:C.textSub,marginBottom:14}}>판별 결과: <strong style={{color:est.color}}>{est.grade} ({score}점)</strong></div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div>
+              <label style={{fontSize:13,fontWeight:600,display:"block",marginBottom:6}}>이름</label>
+              <input ref={nameRef2} placeholder="예: 홍길동" style={inputStyle2} />
+            </div>
+            <div>
+              <label style={{fontSize:13,fontWeight:600,display:"block",marginBottom:6}}>전화번호</label>
+              <input ref={phoneRef2} placeholder="예: 010-1234-5678" type="tel" style={inputStyle2} />
+            </div>
+            <div>
+              <label style={{fontSize:13,fontWeight:600,display:"block",marginBottom:6}}>지역 (시·구)</label>
+              <input ref={areaRef2} placeholder="예: 성북구, 강북구" style={inputStyle2} />
+            </div>
+            <button onClick={()=>setAgreed(v=>!v)} style={{display:"flex",alignItems:"center",gap:8,background:"none",border:"none",cursor:"pointer",fontFamily:F,padding:"4px 0"}}>
+              <div style={{width:20,height:20,borderRadius:6,border:agreed?"none":`2px solid ${C.border}`,background:agreed?C.primary:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {agreed&&<span style={{color:"#fff",fontSize:11}}>✓</span>}
+              </div>
+              <span style={{fontSize:13,color:C.text}}>개인정보 수집에 동의합니다</span>
+            </button>
+            {sent
+              ? <div style={{textAlign:"center",padding:"14px 0",fontSize:15,fontWeight:700,color:C.safe}}>✅ 신청 완료! 곧 연락드립니다</div>
+              : <Btn v="accent" onClick={handleConsult} disabled={sending}>{sending?"전송 중...":"상담 신청하기"}</Btn>
+            }
+            <Btn v="ghost" onClick={()=>setShowForm(false)}>취소</Btn>
+          </div>
+        </Crd>
+      )}
     </div></div>);
   };
 
