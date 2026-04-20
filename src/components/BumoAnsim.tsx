@@ -335,12 +335,14 @@ export default function UriUmbba() {
 
   // ═══ 기본정보 ═══
   const BasicInfo = () => {
-    const done = basic.age && basic.livingAlone !== null;
+    const ageRef = useRef<HTMLInputElement>(null);
+    const [ageFilled, setAgeFilled] = useState(!!basic.age);
+    const done = ageFilled && basic.livingAlone !== null;
     return (<div><Hdr title="기본 정보" onBack={resetAll} /><div style={inner}>
       <Prog current={1} total={6} label="STEP 1 · 기본정보" />
       <Crd style={{ marginBottom: 12, marginTop: 12 }}>
         <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>어르신 연세</label>
-        <input defaultValue={basic.age} onBlur={(e) => setBasic((p) => ({ ...p, age: e.target.value }))} onInput={(e) => setBasic((p) => ({ ...p, age: (e.target as HTMLInputElement).value }))} placeholder="예: 78" type="number" style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: F, outline: "none", boxSizing: "border-box" }} />
+        <input ref={ageRef} defaultValue={basic.age} onBlur={(e) => { setBasic((p) => ({ ...p, age: e.target.value })); setAgeFilled(!!e.target.value); }} onInput={(e) => setAgeFilled(!!(e.target as HTMLInputElement).value)} placeholder="예: 78" type="tel" inputMode="numeric" pattern="[0-9]*" style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 16, fontFamily: F, outline: "none", boxSizing: "border-box" }} />
       </Crd>
       <Crd style={{ marginBottom: 12 }}>
         <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 10 }}>거주 형태</label>
