@@ -13,7 +13,7 @@ const STEPS = {
 };
 
 // Google Sheets 연동 URL
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbzTb80DlJgkbKdxPVwlxXMUWYFBrRAKBJ2UchqeQkSj44pfOQVEVcKwyTa25dqNqTc4/exec";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbyHrpbPp5hCGwfCdpeC_zkZlu8Ks1G3gB_dQDkd3SL87E-D6QLumf1pGaCqt-F1WKaz/exec";
 
 // ── 2026 수가 ──
 const monthlyLimit = { "1": 1520700, "2": 1351700, "3": 1295400, "4": 1189800, "5": 1021300, "cogn": 573900 };
@@ -152,6 +152,7 @@ export default function UriUmbba() {
   const [userInfo, setUserInfo] = useState({ name: "", phone: "", area: "" });
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitDone, setSubmitDone] = useState(false);
 
   const go = useCallback((target) => {
     setFade(false);
@@ -247,15 +248,26 @@ export default function UriUmbba() {
     const handleSubmit = async () => {
       if (!canSubmit) return;
       setSubmitting(true);
+      // 검사 결과 계산
+      const score = calcScore(basic, physical, social, cognition, behavior, nursing);
+      const est = estimateGrade(score, basic);
       try {
         await fetch(SHEET_URL, {
           method: "POST",
           mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: userInfo.name.trim(), phone: userInfo.phone.trim(), area: userInfo.area.trim() }),
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            name: userInfo.name.trim(),
+            phone: userInfo.phone.trim(),
+            area: userInfo.area.trim(),
+            score: score,
+            grade: est.grade,
+            submitAt: new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }),
+          }),
         });
-      } catch (e) { /* no-cors */ }
+      } catch (e) { /* no-cors는 항상 오류처럼 보임 - 정상 */ }
       setSubmitting(false);
+      setSubmitDone(true);
       go(STEPS.CONSULT);
     };
 
