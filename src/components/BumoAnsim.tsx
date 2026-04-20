@@ -188,12 +188,12 @@ export default function UriUmbba() {
   const Hdr = ({ title, onBack }: any) => (
     <div style={{ display: "flex", alignItems: "center", padding: "14px 20px", borderBottom: `1px solid ${C.border}`, background: C.card, position: "sticky", top: 0, zIndex: 10 }}>
       {onBack && <button onClick={onBack} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", marginRight: 8, padding: 4, color: C.text }}>←</button>}
-      <span style={{ fontSize: 16, fontWeight: 700, color: C.text, flex: 1 }}>{title}</span>
+      <span style={{ fontSize: 18, fontWeight: 700, color: C.text, flex: 1 }}>{title}</span>
       <span style={{ fontSize: 11, color: C.textSub, fontWeight: 600, background: C.primaryLight, padding: "3px 8px", borderRadius: 6 }}>우리엄빠</span>
     </div>
   );
   const Btn = ({ children, onClick, v = "primary", disabled = false, s = {} }) => {
-    const base = { width: "100%", padding: "15px 24px", borderRadius: 14, border: "none", fontSize: 15, fontWeight: 700, cursor: disabled ? "default" : "pointer", fontFamily: F, opacity: disabled ? 0.35 : 1, transition: "all 0.2s" };
+    const base = { width: "100%", padding: "18px 24px", borderRadius: 14, border: "none", fontSize: 17, fontWeight: 700, cursor: disabled ? "default" : "pointer", fontFamily: F, opacity: disabled ? 0.35 : 1, transition: "all 0.2s" };
     const vs = { primary: { background: C.primary, color: "#fff" }, accent: { background: C.accent, color: "#fff" }, outline: { background: "transparent", color: C.primary, border: `2px solid ${C.primary}` }, ghost: { background: C.primaryLight, color: C.primary } };
     return <button onClick={disabled ? undefined : onClick} style={{ ...base, ...vs[v], ...s }}>{children}</button>;
   };
@@ -202,11 +202,11 @@ export default function UriUmbba() {
   );
   const Prog = ({ current, total, label }: any) => (
     <div style={{ margin: "16px 0 8px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ fontSize: 12, color: C.textSub, fontWeight: 600 }}>{label}</span><span style={{ fontSize: 12, color: C.primary, fontWeight: 700 }}>{current}/{total}</span></div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ fontSize: 15, color: C.textSub, fontWeight: 600 }}>{label}</span><span style={{ fontSize: 15, color: C.primary, fontWeight: 700 }}>{current}/{total}</span></div>
       <div style={{ height: 5, background: C.border, borderRadius: 3, overflow: "hidden" }}><div style={{ height: "100%", width: `${(current / total) * 100}%`, background: `linear-gradient(90deg,${C.primary},${C.primaryDark})`, borderRadius: 3, transition: "width 0.4s" }} /></div>
     </div>
   );
-  const chip = (sel, extra = {}) => ({ padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, border: sel ? "none" : `1.5px solid ${C.border}`, background: sel ? C.primary : C.card, color: sel ? "#fff" : C.textSub, cursor: "pointer", fontFamily: F, transition: "all 0.15s", ...extra });
+  const chip = (sel, extra = {}) => ({ padding: "14px 16px", borderRadius: 12, fontSize: 16, fontWeight: 600, border: sel ? "none" : `1.5px solid ${C.border}`, background: sel ? C.primary : C.card, color: sel ? "#fff" : C.textSub, cursor: "pointer", fontFamily: F, transition: "all 0.15s", ...extra });
 
 
   const inner = { padding: "0 20px 40px", opacity: fade ? 1 : 0, transform: fade ? "translateY(0)" : "translateY(10px)", transition: "all 0.25s ease" };
@@ -391,9 +391,10 @@ export default function UriUmbba() {
   // ═══ 3단계 선택 페이지 ═══
   const ThreeLevelPage = ({ title, stepNum, label, items, data, setData, prevStep, nextStepTarget, nextLabel }) => {
     const ok = items.every((it) => data[it.key] !== undefined);
-    return (<div><Hdr title={title} onBack={() => go(prevStep)} /><div style={inner}><Prog current={stepNum} total={6} label={label} />
+    const confirmBack = () => { if (window.confirm("이전 단계로 돌아가면 입력한 내용이 유지됩니다. 계속하시겠어요?")) go(prevStep); };
+    return (<div><Hdr title={title} onBack={confirmBack} /><div style={inner}><Prog current={stepNum} total={6} label={label} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-        {items.map((it) => (<Crd key={it.key} style={{ padding: 14 }}><div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{it.label}</div><div style={{ display: "flex", gap: 6 }}>
+        {items.map((it) => (<Crd key={it.key} style={{ padding: 14 }}><div style={{ fontSize: 16, fontWeight: 600, marginBottom: 10 }}>{it.label}</div><div style={{ display: "flex", gap: 6 }}>
           {[["indep","혼자 가능"],["partial","조금 도움"],["full","많이 도움"]].map(([val,lbl]) => (<button key={val} onClick={() => setData({...data,[it.key]:val})} style={{...chip(data[it.key]===val),flex:1,...(data[it.key]===val?{background:val==="full"?C.accent:val==="partial"?C.warn:C.primary}:{})}}>{lbl}</button>))}
         </div></Crd>))}
       </div><div style={{marginTop:20}}><Btn disabled={!ok} onClick={()=>go(nextStepTarget)}>다음: {nextLabel} →</Btn></div></div></div>);
@@ -402,9 +403,10 @@ export default function UriUmbba() {
   // ═══ 예/아니오 페이지 ═══
   const YesNoPage = ({ title, stepNum, label, items, data, setData, prevStep, nextStepTarget, nextLabel }) => {
     const ok = items.every((it) => data[it.key] !== undefined);
-    return (<div><Hdr title={title} onBack={() => go(prevStep)} /><div style={inner}><Prog current={stepNum} total={6} label={label} />
+    const confirmBack = () => { if (window.confirm("이전 단계로 돌아가면 입력한 내용이 유지됩니다. 계속하시겠어요?")) go(prevStep); };
+    return (<div><Hdr title={title} onBack={confirmBack} /><div style={inner}><Prog current={stepNum} total={6} label={label} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-        {items.map((it) => (<Crd key={it.key} style={{ padding: 14 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}><span style={{ fontSize: 14, flex: 1 }}>{it.label}</span><div style={{ display: "flex", gap: 5 }}>
+        {items.map((it) => (<Crd key={it.key} style={{ padding: 14 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}><span style={{ fontSize: 16, flex: 1 }}>{it.label}</span><div style={{ display: "flex", gap: 5 }}>
           {[["예",true],["아니오",false]].map(([l,val]) => (<button key={String(l)} onClick={() => setData({...data,[it.key]:val})} style={{...chip(data[it.key]===val),...(data[it.key]===val?{background:val?C.danger:C.primary}:{})}}>{l}</button>))}
         </div></div></Crd>))}
       </div><div style={{marginTop:20}}><Btn disabled={!ok} onClick={()=>go(nextStepTarget)}>다음: {nextLabel} →</Btn></div></div></div>);
